@@ -1,0 +1,40 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_1 = __importDefault(require("./auth"));
+const lead_1 = __importDefault(require("./lead"));
+const contact_1 = __importDefault(require("./contact"));
+const company_1 = __importDefault(require("./company"));
+const deal_1 = __importDefault(require("./deal"));
+const task_1 = __importDefault(require("./task"));
+const project_1 = __importDefault(require("./project"));
+const employee_1 = __importDefault(require("./employee"));
+const attendance_1 = __importDefault(require("./attendance"));
+const leave_1 = __importDefault(require("./leave"));
+const document_1 = __importDefault(require("./document"));
+const activity_1 = __importDefault(require("./activity"));
+const notification_1 = __importDefault(require("./notification"));
+const meeting_1 = __importDefault(require("./meeting"));
+const router = (0, express_1.Router)();
+router.use('/auth', auth_1.default);
+router.use('/leads', lead_1.default);
+router.use('/contacts', contact_1.default);
+router.use('/companies', company_1.default);
+router.use('/deals', deal_1.default);
+router.use('/tasks', task_1.default);
+router.use('/projects', project_1.default);
+router.use('/employees', employee_1.default);
+router.use('/attendance', attendance_1.default);
+router.use('/leaves', leave_1.default);
+router.use('/documents', document_1.default);
+router.use('/activities', activity_1.default);
+router.use('/notifications', notification_1.default);
+router.use('/meetings', meeting_1.default);
+router.get('/health', (_req, res) => {
+    res.json({ success: true, data: { status: 'ok', timestamp: new Date().toISOString() } });
+});
+exports.default = router;
+//# sourceMappingURL=index.js.map

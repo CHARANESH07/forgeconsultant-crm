@@ -1,0 +1,1 @@
+{"version":3,"file":"task.d.ts","sourceRoot":"","sources":["../../src/controllers/task.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAoBnC,eAAO,MAAM,UAAU,+FAIrB,CAAC;AAEH,eAAO,MAAM,OAAO,+FAKlB,CAAC;AAEH,eAAO,MAAM,SAAS,+FAiBpB,CAAC;AAEH,eAAO,MAAM,UAAU,+FAIrB,CAAC;AAEH,eAAO,MAAM,UAAU,+FAIrB,CAAC;AAEH,eAAO,MAAM,oBAAoB,+FAI/B,CAAC"}

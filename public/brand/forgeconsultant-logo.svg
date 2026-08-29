@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" fill="none">
+  <defs>
+    <linearGradient id="forgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D97706" />
+      <stop offset="50%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+    <linearGradient id="slateGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#1E293B" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Icon / Mark: Precision Anvil & Prism -->
+  <g transform="translate(10, 15)">
+    <!-- Base Anvil / Foundation -->
+    <path d="M15 52 L55 52 L62 62 L8 62 Z" fill="url(#slateGrad)" />
+    <!-- Golden Geometric Forge Peak -->
+    <path d="M35 8 L60 48 L10 48 Z" fill="url(#forgeGrad)" />
+    <!-- Dynamic Prism Diamond Facet -->
+    <path d="M35 18 L50 44 L20 44 Z" fill="#FDE68A" opacity="0.6" />
+    <!-- Spark / Compass Star -->
+    <polygon points="58,16 61,22 67,25 61,28 58,34 55,28 49,25 55,22" fill="#F59E0B" />
+  </g>
+
+  <!-- Typography -->
+  <text x="95" y="48" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="28" font-weight="800" letter-spacing="-0.5" fill="#0F172A">
+    FORGE<tspan fill="#D97706">CONSULTANT</tspan>
+  </text>
+  <text x="96" y="68" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" letter-spacing="3" fill="#64748B">
+    ENTERPRISE CRM
+  </text>
+</svg>

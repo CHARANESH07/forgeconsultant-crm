@@ -1,0 +1,533 @@
+// Forge Consultancy Pvt. Ltd. Unified CRM + Workforce Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// 1. Organization
+model Organization {
+  id              String       @id @default(uuid())
+  name            String       @default("Forge Consultancy")
+  slug            String       @unique @default("forge-consultancy")
+  established     String       @default("2024")
+  currency        String       @default("INR")
+  currencySymbol  String       @default("₹")
+  timezone        String       @default("Asia/Kolkata")
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+
+  departments     Department[]
+  teams           Team[]
+  employees       Employee[]
+  companies       Company[]
+  projects        Project[]
+  auditLogs       AuditLog[]
+
+  @@map("organizations")
+}
+
+// 2. Department
+model Department {
+  id              String       @id @default(uuid())
+  organization_id String
+  name            String       // IT, Marketing, Sales, HR, Management, Founder
+  description     String?
+  created_at      DateTime     @default(now())
+
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  teams           Team[]
+  employees       Employee[]
+
+  @@map("departments")
+}
+
+// 3. Team & Team Leads
+model Team {
+  id              String       @id @default(uuid())
+  organization_id String
+  department_id   String
+  name            String       // AI Dev & Testing, QA & Performance, Webstack, Marketing, HR Ops
+  team_lead_id    String?
+  created_at      DateTime     @default(now())
+
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  department      Department   @relation(fields: [department_id], references: [id], onDelete: Cascade)
+  members         Employee[]   @relation("TeamMembers")
+
+  @@map("teams")
+}
+
+// 4. Employee Master
+model Employee {
+  id                String         @id @default(uuid())
+  organization_id   String
+  department_id     String?
+  team_id           String?
+  employee_id       String         @unique // FC-01, FC-02, FC-15, FC-24, etc.
+  full_name         String
+  email             String         @unique
+  designation       String
+  crm_role          String         @default("employee") // Employer/Admin, Team Lead, Lead, HR, employee
+  under_team_lead   String?        // Reporting supervisor name
+  responsible_for   String?        // Key focus/practice area
+  joining_date      String
+  employment_status String         @default("Active")
+  is_superior       Boolean        @default(false)
+  password_hash     String
+  avatar_url        String?
+  phone             String?
+  created_at        DateTime       @default(now())
+  updated_at        DateTime       @updatedAt
+
+  organization      Organization   @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  department        Department?    @relation(fields: [department_id], references: [id], onDelete: SetNull)
+  team              Team?          @relation("TeamMembers", fields: [team_id], references: [id], onDelete: SetNull)
+
+  // Workforce Relations
+  attendance        Attendance[]
+  leaveRequests     LeaveRequest[] @relation("EmployeeLeaves")
+  approvedLeaves    LeaveRequest[] @relation("ApprovedLeaves")
+  dailyWorkLogs     DailyWorkLog[]
+
+  // CRM & Project Relations
+  ownedCompanies    Company[]      @relation("CompanyOwner")
+  ownedContacts     Contact[]      @relation("ContactOwner")
+  ownedLeads        Lead[]         @relation("LeadOwner")
+  ownedDeals        Deal[]         @relation("DealOwner")
+  managedProjects   Project[]      @relation("ProjectManager")
+  assignedTasks     Task[]         @relation("TaskAssignee")
+  createdTasks      Task[]         @relation("TaskCreator")
+  uploadedDocs      Document[]     @relation("DocUploader")
+
+  // Auth Relations
+  refreshTokens     RefreshToken[]
+  passwordResets    PasswordReset[]
+
+  // Notification Relations
+  notifications     Notification[]
+
+  @@index([employee_id])
+  @@index([email])
+  @@index([crm_role])
+  @@map("employees")
+}
+
+// 5. Attendance
+model Attendance {
+  id              String       @id @default(uuid())
+  employee_id     String
+  date            String       // YYYY-MM-DD
+  check_in        DateTime?
+  check_out       DateTime?
+  working_hours   Float        @default(0.0)
+  status          String       @default("Present") // Present, Absent, HalfDay, Leave, Holiday
+  ip_address      String?
+  location        String?      @default("Bengaluru Office / Remote")
+  notes           String?
+  created_at      DateTime     @default(now())
+
+  employee        Employee     @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  @@unique([employee_id, date])
+  @@index([date])
+  @@map("attendance")
+}
+
+// 6. Leave Request
+model LeaveRequest {
+  id              String       @id @default(uuid())
+  employee_id     String
+  leave_type      String       // Casual, Sick, Emergency, WFH
+  start_date      String
+  end_date        String
+  total_days      Int          @default(1)
+  reason          String
+  status          String       @default("Pending") // Pending, Approved, Rejected
+  approved_by_id  String?
+  decision_date   DateTime?
+  comments        String?
+  created_at      DateTime     @default(now())
+
+  employee        Employee     @relation("EmployeeLeaves", fields: [employee_id], references: [id], onDelete: Cascade)
+  approved_by     Employee?    @relation("ApprovedLeaves", fields: [approved_by_id], references: [id], onDelete: SetNull)
+
+  @@index([employee_id])
+  @@index([status])
+  @@map("leave_requests")
+}
+
+// 7. Daily Work Log
+model DailyWorkLog {
+  id                String       @id @default(uuid())
+  employee_id       String
+  project_id        String?
+  task_id           String?
+  date              String       // YYYY-MM-DD
+  hours_worked      Float        @default(0.0)
+  progress_percent  Int          @default(0)
+  work_description  String
+  blockers          String?
+  status            String       @default("Submitted") // Submitted, Reviewed, Approved
+  created_at        DateTime     @default(now())
+
+  employee          Employee     @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  project           Project?     @relation(fields: [project_id], references: [id], onDelete: SetNull)
+  task              Task?        @relation(fields: [task_id], references: [id], onDelete: SetNull)
+
+  @@index([employee_id, date])
+  @@map("daily_work_logs")
+}
+
+// 8. Company / Client Account
+model Company {
+  id              String       @id @default(uuid())
+  organization_id String
+  name            String
+  industry        String
+  website         String?
+  phone           String?
+  email           String?
+  city            String?
+  state           String?
+  country         String?      @default("India")
+  employees_count String?
+  annual_revenue  Float?
+  tier            String       @default("Growth") // Enterprise, Strategic, Growth, Mid-Market
+  owner_id        String?
+  description     String?
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  owner           Employee?    @relation("CompanyOwner", fields: [owner_id], references: [id], onDelete: SetNull)
+  contacts        Contact[]
+  deals           Deal[]
+  projects        Project[]
+
+  @@index([name])
+  @@map("companies")
+}
+
+// 9. Contact Person
+model Contact {
+  id              String       @id @default(uuid())
+  first_name      String
+  last_name       String
+  email           String
+  phone           String
+  alternate_phone String?
+  job_title       String
+  company_id      String?
+  city            String?
+  country         String?      @default("India")
+  owner_id        String?
+  tags            Json         @default("[]")
+  notes           String?
+  created_at      DateTime     @default(now())
+  updated_at      DateTime     @updatedAt
+
+  company         Company?     @relation(fields: [company_id], references: [id], onDelete: SetNull)
+  owner           Employee?    @relation("ContactOwner", fields: [owner_id], references: [id], onDelete: SetNull)
+  deals           Deal[]
+
+  @@index([email])
+  @@map("contacts")
+}
+
+// 10. Lead
+model Lead {
+  id                    String       @id @default(uuid())
+  first_name            String
+  last_name             String
+  company_name          String
+  job_title             String?
+  email                 String
+  phone                 String
+  website               String?
+  location              String?
+  industry              String?
+  lead_source           String       @default("Website")
+  status                String       @default("new") // new, contacted, qualified, nurturing, unqualified, converted
+  lead_score            Int          @default(50)
+  estimated_value       Float?
+  owner_id              String?
+  notes                 String?
+  ai_summary            String?
+  ai_recommended_action String?
+  converted_company_id  String?
+  converted_contact_id  String?
+  converted_deal_id     String?
+  created_at            DateTime     @default(now())
+  updated_at            DateTime     @updatedAt
+
+  owner                 Employee?    @relation("LeadOwner", fields: [owner_id], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([lead_score])
+  @@map("leads")
+}
+
+// 11. Deal / Opportunity
+model Deal {
+  id                  String       @id @default(uuid())
+  title               String
+  company_id          String?
+  contact_id          String?
+  amount              Float        @default(0.00)
+  stage               String       @default("new") // new, discovery, proposal, negotiation, won, lost
+  probability         Int          @default(20)
+  expected_close_date String
+  owner_id            String?
+  priority            String       @default("medium") // low, medium, high, urgent
+  risk_level          String?      @default("low")
+  service_type        String       @default("AI Development & Testing")
+  notes               String?
+  ai_summary          String?
+  closed_at           DateTime?
+  lost_reason         String?
+  created_at          DateTime     @default(now())
+  updated_at          DateTime     @updatedAt
+
+  company             Company?     @relation(fields: [company_id], references: [id], onDelete: SetNull)
+  contact             Contact?     @relation(fields: [contact_id], references: [id], onDelete: SetNull)
+  owner               Employee?    @relation("DealOwner", fields: [owner_id], references: [id], onDelete: SetNull)
+  proposals           Proposal[]
+  originatingProjects Project[]    @relation("OriginatingDeal")
+
+  @@index([stage])
+  @@map("deals")
+}
+
+// 12. Proposal & Quotation
+model Proposal {
+  id              String       @id @default(uuid())
+  deal_id         String
+  title           String
+  service_type    String
+  package_name    String
+  total_amount    Float
+  status          String       @default("Draft") // Draft, Sent, Accepted, Rejected
+  valid_until     String
+  terms           String?
+  created_at      DateTime     @default(now())
+
+  deal            Deal         @relation(fields: [deal_id], references: [id], onDelete: Cascade)
+
+  @@map("proposals")
+}
+
+// 13. Project Management
+model Project {
+  id                  String             @id @default(uuid())
+  organization_id     String
+  title               String
+  client_id           String?
+  originating_deal_id String?
+  project_manager_id  String?
+  status              String             @default("InProgress") // Planning, InProgress, Review, Completed, OnHold
+  priority            String             @default("high")
+  start_date          String
+  end_date            String
+  budget              Float?
+  progress_percent    Int                @default(0)
+  description         String?
+  service_type        String             @default("AI Development & Testing")
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+
+  organization        Organization       @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  client              Company?           @relation(fields: [client_id], references: [id], onDelete: SetNull)
+  originating_deal    Deal?              @relation("OriginatingDeal", fields: [originating_deal_id], references: [id], onDelete: SetNull)
+  project_manager     Employee?          @relation("ProjectManager", fields: [project_manager_id], references: [id], onDelete: SetNull)
+
+  milestones          ProjectMilestone[]
+  tasks               Task[]
+  dailyWorkLogs       DailyWorkLog[]
+
+  @@index([status])
+  @@map("projects")
+}
+
+// 14. Project Milestone
+model ProjectMilestone {
+  id              String       @id @default(uuid())
+  project_id      String
+  title           String
+  due_date        String
+  status          String       @default("Pending") // Pending, InProgress, Completed
+  deliverables    String?
+  created_at      DateTime     @default(now())
+
+  project         Project      @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@map("project_milestones")
+}
+
+// 15. Task
+model Task {
+  id                String       @id @default(uuid())
+  title             String
+  description       String?
+  project_id        String?
+  assigned_to_id    String?
+  created_by_id     String?
+  due_date          String
+  due_time          String?
+  priority          String       @default("medium") // low, medium, high, urgent
+  status            String       @default("not_started") // not_started, in_progress, completed, cancelled
+  progress_percent  Int          @default(0)
+  completed_at      DateTime?
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
+
+  project           Project?     @relation(fields: [project_id], references: [id], onDelete: SetNull)
+  assigned_to       Employee?    @relation("TaskAssignee", fields: [assigned_to_id], references: [id], onDelete: SetNull)
+  created_by        Employee?    @relation("TaskCreator", fields: [created_by_id], references: [id], onDelete: SetNull)
+  dailyWorkLogs     DailyWorkLog[]
+
+  @@index([due_date])
+  @@index([status])
+  @@map("tasks")
+}
+
+// 16. Activity & Communication Timeline
+model Activity {
+  id                String       @id @default(uuid())
+  type              String       // call, email, meeting, task, deal_stage_changed, lead_converted, system
+  title             String
+  description       String?
+  entity_type       String       // lead, contact, company, deal, project, general
+  entity_id         String?
+  entity_name       String?
+  user_id           String
+  user_name         String
+  duration_minutes  Int?
+  outcome           String?
+  created_at        DateTime     @default(now())
+
+  @@map("activities")
+}
+
+// 17. Document Repository
+model Document {
+  id                    String       @id @default(uuid())
+  name                  String
+  file_url              String
+  file_type             String
+  file_size             Int
+  category              String       // SOW, Contract, Architecture, TestReport, Compliance
+  related_entity_type   String?
+  related_entity_id     String?
+  uploaded_by_id        String?
+  version               String       @default("v1.0")
+  created_at            DateTime     @default(now())
+
+  uploaded_by           Employee?    @relation("DocUploader", fields: [uploaded_by_id], references: [id], onDelete: SetNull)
+
+  @@map("documents")
+}
+
+// 18. Audit Log
+model AuditLog {
+  id              String       @id @default(uuid())
+  organization_id String
+  action          String
+  entity_type     String
+  entity_id       String
+  entity_title    String?
+  user_name       String
+  details         String?
+  request_meta    Json?
+  created_at      DateTime     @default(now())
+
+  organization    Organization @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+
+  @@index([created_at])
+  @@map("audit_logs")
+}
+
+// 19. Refresh Token (for JWT rotation)
+model RefreshToken {
+  id            String       @id @default(uuid())
+  employee_id   String
+  token         String       @unique
+  expires_at    DateTime
+  created_at    DateTime     @default(now())
+
+  employee      Employee     @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  @@index([employee_id])
+  @@map("refresh_tokens")
+}
+
+// 20. Password Reset Token
+model PasswordReset {
+  id            String       @id @default(uuid())
+  employee_id   String
+  token         String       @unique
+  expires_at    DateTime
+  used          Boolean      @default(false)
+  created_at    DateTime     @default(now())
+
+  employee      Employee     @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  @@index([employee_id])
+  @@map("password_resets")
+}
+
+// 21. Login Attempt Tracking
+model LoginAttempt {
+  id            String       @id @default(uuid())
+  email         String
+  success       Boolean
+  attempted_at  DateTime     @default(now())
+
+  @@index([email])
+  @@index([attempted_at])
+  @@map("login_attempts")
+}
+
+// 22. Notification
+model Notification {
+  id            String       @id @default(uuid())
+  user_id       String
+  title         String
+  message       String
+  type          String       // info, success, warning, alert, deal, task
+  read          Boolean      @default(false)
+  link          String?
+  created_at    DateTime     @default(now())
+
+  employee      Employee     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, read])
+  @@index([created_at])
+  @@map("notifications")
+}
+
+// 23. Meeting
+model Meeting {
+  id              String       @id @default(uuid())
+  title           String
+  description     String?
+  start_time      DateTime
+  end_time        DateTime
+  location        String?
+  meeting_url     String?
+  contact_id      String?
+  contact_name    String?
+  company_name    String?
+  deal_id         String?
+  deal_name       String?
+  attendees       Json
+  host_id         String
+  host_name       String
+  status          String       @default("scheduled") // scheduled, completed, cancelled
+  created_at      DateTime     @default(now())
+
+  @@map("meetings")
+}
